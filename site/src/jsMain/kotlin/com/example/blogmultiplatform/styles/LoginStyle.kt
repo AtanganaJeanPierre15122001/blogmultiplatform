@@ -1,4 +1,4 @@
-package com.example.blogmultiplatform.Styles
+package com.example.blogmultiplatform.styles
 
 import com.example.blogmultiplatform.models.Theme
 import com.varabyte.kobweb.compose.css.Transition
@@ -12,6 +12,7 @@ import org.jetbrains.compose.web.css.px
 import org.jetbrains.compose.web.css.ms
 import com.varabyte.kobweb.silk.style.CssStyle
 import com.varabyte.kobweb.silk.style.selectors.focus
+import org.jetbrains.compose.web.css.*
 
 val LoginInputStyle = CssStyle {
     base {

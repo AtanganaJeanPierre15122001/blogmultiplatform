@@ -9,6 +9,9 @@ import com.varabyte.kobweb.api.ApiContext
 import com.varabyte.kobweb.api.data.get
 import com.varabyte.kobweb.api.data.getValue
 import com.varabyte.kobweb.api.http.setBodyText
+//import kotlinx.serialization.json.Json
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
@@ -16,19 +19,15 @@ import kotlin.math.log
 
 
 @Api(routeOverride = "usercheck")
-suspend fun userCheck( context : ApiContext){
+suspend fun userCheck(context : ApiContext){
     try {
-        println("Réponse de l'API : ${context.req.body?.decodeToString()}")
         val userRequest =
-            context.req.body?.decodeToString()?.let { Json.decodeFromString<User>(it) }
-//        println("Réponse de l'API : ${userRequest.toString()}")
+        context.req.body?.decodeToString()?.let { Json.decodeFromString<User>(it) }
         val user = userRequest?.let {
             context.data.getValue<MongoDB>().checkUserExistence(
                 User(username = it.username, password = hashPassword(it.password))
             )
-
         }
-//        println("Réponse de l'API : ${user.toString()}")
         if (user != null) {
             context.res.setBodyText(
                 Json.encodeToString(
@@ -40,6 +39,25 @@ suspend fun userCheck( context : ApiContext){
         }
     }catch (e : Exception){
         context.res.setBodyText(Json.encodeToString(e.message))
+    }
+}
+
+
+@Api(routeOverride = "checkuserid")
+suspend fun checkUserId(context : ApiContext){
+    try {
+        val idRequest =
+            context.req.body?.decodeToString()?.let { Json.decodeFromString<String>(it) }
+        val result = idRequest?.let {
+            context.data.getValue<MongoDB>().checkUserId(it)
+        }
+        if (result != null) {
+            context.res.setBodyText(Json.encodeToString(result))
+        } else {
+            context.res.setBodyText(Json.encodeToString(false))
+        }
+    }catch (e : Exception){
+        context.res.setBodyText(Json.encodeToString(false))
     }
 }
 

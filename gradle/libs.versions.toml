@@ -3,15 +3,16 @@ jetbrains-compose = "1.7.1"
 kobweb = "0.20.3"
 kotlin = "2.1.10"
 kmongo = "5.2.0"
-serialization = "1.8.0"
+serialization = "1.4.0"
 slf4j = "2.0.7"
+
 
 [libraries]
 compose-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "jetbrains-compose" }
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrains-compose" }
 kobweb-api = { module = "com.varabyte.kobweb:kobweb-api", version.ref = "kobweb" }
 kobweb-core = { module = "com.varabyte.kobweb:kobweb-core ", version.ref = "kobweb" }
-kmongo-database = { module = "org.litote.kmongo:kmongo-coroutine", version.ref = "kmongo" }
+kmongo-database = { module = "org.litote.kmongo:kmongo-coroutine-serialization", version.ref = "kmongo" }
 kmongo = { module = "org.litote.kmongo:kmongo", version.ref = "kmongo" }
 kmongo-serialization = { module = "org.litote.kmongo:kmongo-serialization", version.ref = "kmongo" }
 kobweb-silk = { module = "com.varabyte.kobweb:kobweb-silk", version.ref = "kobweb" }
