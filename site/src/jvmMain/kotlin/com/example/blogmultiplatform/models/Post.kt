@@ -9,7 +9,7 @@ import org.litote.kmongo.id.ObjectIdGenerator
 @Serializable
 actual data class Post(
     @SerialName("_id")
-    actual val id: String,
+    actual val id: String = "",
     actual val author: String,
     actual val date: Long,
     actual val title: String,

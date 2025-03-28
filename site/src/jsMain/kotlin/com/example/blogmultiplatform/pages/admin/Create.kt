@@ -8,12 +8,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.example.blogmultiplatform.components.AdminPageLayout
-import com.example.blogmultiplatform.models.EditorKey
+import com.example.blogmultiplatform.components.MessagePopup
+import com.example.blogmultiplatform.models.ControlStyle
+import com.example.blogmultiplatform.models.EditorControl
+import com.example.blogmultiplatform.models.Post
 import com.example.blogmultiplatform.models.Theme
+import com.example.blogmultiplatform.navigation.Screen
 import com.example.blogmultiplatform.styles.EditorKeyStyle
 import com.example.blogmultiplatform.util.Constants.FONT_FAMILY
 import com.example.blogmultiplatform.util.Constants.SIDE_PANEL_WIDTH
 import com.example.blogmultiplatform.util.Id
+import com.example.blogmultiplatform.util.addPost
+import com.example.blogmultiplatform.util.applyControlStyle
+import com.example.blogmultiplatform.util.applyStyle
+import com.example.blogmultiplatform.util.getSelectedText
 import com.varabyte.kobweb.silk.components.forms.Switch
 import com.example.blogmultiplatform.util.isUserLoggedIn
 import com.example.blogmultiplatform.util.noBorder
@@ -69,6 +77,9 @@ import com.varabyte.kobweb.silk.style.breakpoint.Breakpoint
 import com.varabyte.kobweb.silk.style.toModifier
 import com.varabyte.kobweb.silk.theme.breakpoint.rememberBreakpoint
 import kotlinx.browser.document
+import kotlinx.browser.localStorage
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.web.attributes.InputType
 import org.jetbrains.compose.web.css.px
 import org.jetbrains.compose.web.dom.A
@@ -78,10 +89,13 @@ import org.jetbrains.compose.web.dom.Li
 import org.jetbrains.compose.web.dom.Text
 import org.jetbrains.compose.web.dom.TextArea
 import org.jetbrains.compose.web.dom.Ul
+import org.w3c.dom.HTMLInputElement
+import org.w3c.dom.HTMLTextAreaElement
+import org.w3c.dom.get
+import kotlin.js.Date
 
 
-
-data class CreatePageUiEvent(
+data class CreatePageUiState(
     var id: String = "",
     var title: String = "",
     var subtitle: String = "",
@@ -112,7 +126,7 @@ fun CreateScreen(){
     val scope = rememberCoroutineScope()
     val context = rememberPageContext()
     val breakpoint = rememberBreakpoint()
-    var uiEvent by remember { mutableStateOf(CreatePageUiEvent()) }
+    var uiState by remember { mutableStateOf(CreatePageUiState()) }
    AdminPageLayout {
        Box(
            modifier = Modifier
@@ -139,8 +153,8 @@ fun CreateScreen(){
                    ) {
                        Switch(
                            modifier = Modifier.margin(right = 8.px),
-                           checked = uiEvent.popular,
-                           onCheckedChange = {uiEvent = uiEvent.copy(popular = it) },
+                           checked = uiState.popular,
+                           onCheckedChange = {uiState = uiState.copy(popular = it) },
                            size = SwitchSize.LG
                        )
                        SpanText(
@@ -161,8 +175,8 @@ fun CreateScreen(){
                    ) {
                        Switch(
                            modifier = Modifier.margin(right = 8.px),
-                           checked = uiEvent.main,
-                           onCheckedChange = { uiEvent = uiEvent.copy(main = it) },
+                           checked = uiState.main,
+                           onCheckedChange = { uiState = uiState.copy(main = it) },
                            size = SwitchSize.LG
                        )
                        SpanText(
@@ -180,8 +194,8 @@ fun CreateScreen(){
                    ) {
                        Switch(
                            modifier = Modifier.margin(right = 8.px),
-                           checked = uiEvent.sponsored,
-                           onCheckedChange = { uiEvent = uiEvent.copy(sponsored = it) },
+                           checked = uiState.sponsored,
+                           onCheckedChange = { uiState = uiState.copy(sponsored = it) },
                            size = SwitchSize.LG
                        )
                        SpanText(
@@ -230,8 +244,8 @@ fun CreateScreen(){
                        }
                )
                CategoryDropdown(
-                   selectedCategory = uiEvent.category,
-                   onCategorySelect = { uiEvent = uiEvent.copy(category = it) }
+                   selectedCategory = uiState.category,
+                   onCategorySelect = { uiState = uiState.copy(category = it) }
                )
                Row(
                    modifier = Modifier
@@ -245,8 +259,8 @@ fun CreateScreen(){
                ) {
                    Switch(
                        modifier = Modifier.margin(right = 8.px),
-                       checked = !uiEvent.thumbnailInputDisabled,
-                       onCheckedChange = { uiEvent = uiEvent.copy(thumbnailInputDisabled = !it) },
+                       checked = !uiState.thumbnailInputDisabled,
+                       onCheckedChange = { uiState = uiState.copy(thumbnailInputDisabled = !it) },
                        size = SwitchSize.MD
                    )
                    SpanText(
@@ -258,22 +272,74 @@ fun CreateScreen(){
                    )
                }
                ThumbnailUploader(
-                   thumbnail = uiEvent.thumbnail,
-                   thumbnailInputDisabled = uiEvent.thumbnailInputDisabled,
+                   thumbnail = uiState.thumbnail,
+                   thumbnailInputDisabled = uiState.thumbnailInputDisabled,
                    onThumbnailSelect = { filename, file ->
-                       uiEvent = uiEvent.copy(thumbnail = filename)
-                       println(filename)
-                       println(file)
+                       (document.getElementById(Id.thumbnailInput) as HTMLInputElement).value =
+                           filename
+                       uiState = uiState.copy(thumbnail = filename)
                    }
                )
                EditorControls(
                    breakpoint = breakpoint,
-                   editorVisibility = uiEvent.editorVisibility,
-                   onEditorVisibilityChange = { uiEvent = uiEvent.copy(editorVisibility = !uiEvent.editorVisibility)}
+                   editorVisibility = uiState.editorVisibility,
+                   onEditorVisibilityChange = { uiState = uiState.copy(editorVisibility = !uiState.editorVisibility)}
                )
-               Editor(editorVisibility = uiEvent.editorVisibility)
-               CreateButton(onClick = {} , text = "Create")
+               Editor(editorVisibility = uiState.editorVisibility)
+               CreateButton(onClick = {
+                   uiState =
+                       uiState.copy(title = (document.getElementById(Id.titleInput) as HTMLInputElement).value)
+                   uiState =
+                       uiState.copy(subtitle = (document.getElementById(Id.subtitleInput) as HTMLInputElement).value)
+                   uiState =
+                       uiState.copy(content = (document.getElementById(Id.editor) as HTMLTextAreaElement).value)
+                   if (!uiState.thumbnailInputDisabled) {
+                       uiState =
+                           uiState.copy(thumbnail = (document.getElementById(Id.thumbnailInput) as HTMLInputElement).value)
+                   }
+                   if (
+                       uiState.title.isNotEmpty() &&
+                       uiState.subtitle.isNotEmpty() &&
+                       uiState.thumbnail.isNotEmpty() &&
+                       uiState.content.isNotEmpty()
+                   ) {
+                       scope.launch {
+                               val result = addPost(
+                                   Post(
+                                       author = localStorage["username"].toString(),
+                                       title = uiState.title,
+                                       subtitle = uiState.subtitle,
+                                       date = Date.now().toLong(),
+                                       thumbnail = uiState.thumbnail,
+                                       content = uiState.content,
+                                       category = uiState.category,
+                                       popular = uiState.popular,
+                                       main = uiState.main,
+                                       sponsored = uiState.sponsored
+                                   )
+                               )
+                               if (result) {
+                                   context.router.navigateTo(Screen.AdminSuccess.route)
+                                   println("Success")
+                               }
+                           }
+                       } else {
+                           scope.launch {
+                               uiState = uiState.copy(messagePopup = true)
+                               delay(2000)
+                               uiState = uiState.copy(messagePopup = false)
+                           }
+                       }
+               },
+                   text = "Create"
+               )
            }
+       }
+       if (uiState.messagePopup){
+           MessagePopup(
+               message = "Please fill out all fields",
+               onDialogDismiss = { uiState = uiState.copy(messagePopup = false)}
+           )
        }
    }
 }
@@ -419,9 +485,12 @@ fun EditorControls(
                     .borderRadius(r = 4.px)
                     .height(54.px)
             ) {
-                EditorKey.entries.forEach {
-                    EditorKeyView(
-                        key = it
+                EditorControl.entries.forEach {
+                    EditorControlView(
+                        key = it,
+                        onClick = {
+                            applyControlStyle(it)
+                        }
                     )
                 }
             }
@@ -468,8 +537,9 @@ fun EditorControls(
 
 
 @Composable
-fun EditorKeyView(
-    key: EditorKey,
+fun EditorControlView(
+    key: EditorControl,
+    onClick: () -> Unit
 ) {
     Box(
         modifier = EditorKeyStyle.toModifier()
@@ -477,7 +547,7 @@ fun EditorKeyView(
             .padding(leftRight = 12.px)
             .borderRadius(r = 4.px)
             .cursor(Cursor.Pointer)
-            .onClick {  },
+            .onClick { onClick() },
         contentAlignment = Alignment.Center
     ) {
         Image(
