@@ -2,6 +2,13 @@ package com.example.blogmultiplatform.pages.admin
 
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.blogmultiplatform.components.AdminPageLayout
+import com.example.blogmultiplatform.components.NavigationItems
+import com.example.blogmultiplatform.components.OverflowSidePanel
 import com.example.blogmultiplatform.components.SidePanel
 import com.example.blogmultiplatform.util.Constants.PAGE_WIDTH
 import com.example.blogmultiplatform.util.isUserLoggedIn
@@ -24,16 +31,5 @@ fun MyPostsPage(){
 
 @Composable
 fun MyPostsScreen(){
-    Box(modifier = Modifier
-        .fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .maxWidth(PAGE_WIDTH.px)
-        ){
-            SidePanel(onMenuClick = {})
-        }
-    }
+    AdminPageLayout {  }
 }
