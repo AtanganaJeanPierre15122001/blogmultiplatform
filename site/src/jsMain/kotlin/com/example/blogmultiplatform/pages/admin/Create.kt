@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.example.blogmultiplatform.components.AdminPageLayout
+import com.example.blogmultiplatform.components.LinkPopup
 import com.example.blogmultiplatform.components.MessagePopup
 import com.example.blogmultiplatform.models.ControlStyle
 import com.example.blogmultiplatform.models.EditorControl
@@ -21,6 +22,7 @@ import com.example.blogmultiplatform.util.Id
 import com.example.blogmultiplatform.util.addPost
 import com.example.blogmultiplatform.util.applyControlStyle
 import com.example.blogmultiplatform.util.applyStyle
+import com.example.blogmultiplatform.util.getEditor
 import com.example.blogmultiplatform.util.getSelectedText
 import com.varabyte.kobweb.silk.components.forms.Switch
 import com.example.blogmultiplatform.util.isUserLoggedIn
@@ -59,6 +61,7 @@ import com.varabyte.kobweb.compose.ui.modifiers.margin
 import com.varabyte.kobweb.compose.ui.modifiers.maxHeight
 import com.varabyte.kobweb.compose.ui.modifiers.maxWidth
 import com.varabyte.kobweb.compose.ui.modifiers.onClick
+import com.varabyte.kobweb.compose.ui.modifiers.onKeyDown
 import com.varabyte.kobweb.compose.ui.modifiers.overflow
 import com.varabyte.kobweb.compose.ui.modifiers.padding
 import com.varabyte.kobweb.compose.ui.modifiers.resize
@@ -154,7 +157,7 @@ fun CreateScreen(){
                        Switch(
                            modifier = Modifier.margin(right = 8.px),
                            checked = uiState.popular,
-                           onCheckedChange = {uiState = uiState.copy(popular = it) },
+                           onCheckedChange = { uiState = uiState.copy(popular = it) },
                            size = SwitchSize.LG
                        )
                        SpanText(
@@ -243,7 +246,7 @@ fun CreateScreen(){
 //                           attr("value", uiState.subtitle)
                        }
                )
-               CategoryDropdown(
+               CategoryDropDown(
                    selectedCategory = uiState.category,
                    onCategorySelect = { uiState = uiState.copy(category = it) }
                )
@@ -283,27 +286,36 @@ fun CreateScreen(){
                EditorControls(
                    breakpoint = breakpoint,
                    editorVisibility = uiState.editorVisibility,
-                   onEditorVisibilityChange = { uiState = uiState.copy(editorVisibility = !uiState.editorVisibility)}
+                   onEditorVisibilityChange = {
+                       uiState = uiState.copy(editorVisibility = !uiState.editorVisibility)
+                   },
+                   onLinkClick = {
+                       uiState = uiState.copy(linkPopup = true)
+                   },
+                   onImageClick = {
+                       uiState = uiState.copy(imagePopup = true)
+                   }
                )
                Editor(editorVisibility = uiState.editorVisibility)
-               CreateButton(onClick = {
-                   uiState =
-                       uiState.copy(title = (document.getElementById(Id.titleInput) as HTMLInputElement).value)
-                   uiState =
-                       uiState.copy(subtitle = (document.getElementById(Id.subtitleInput) as HTMLInputElement).value)
-                   uiState =
-                       uiState.copy(content = (document.getElementById(Id.editor) as HTMLTextAreaElement).value)
-                   if (!uiState.thumbnailInputDisabled) {
+               CreateButton(
+                   onClick = {
                        uiState =
-                           uiState.copy(thumbnail = (document.getElementById(Id.thumbnailInput) as HTMLInputElement).value)
-                   }
-                   if (
-                       uiState.title.isNotEmpty() &&
-                       uiState.subtitle.isNotEmpty() &&
-                       uiState.thumbnail.isNotEmpty() &&
-                       uiState.content.isNotEmpty()
-                   ) {
-                       scope.launch {
+                           uiState.copy(title = (document.getElementById(Id.titleInput) as HTMLInputElement).value)
+                       uiState =
+                           uiState.copy(subtitle = (document.getElementById(Id.subtitleInput) as HTMLInputElement).value)
+                       uiState =
+                           uiState.copy(content = (document.getElementById(Id.editor) as HTMLTextAreaElement).value)
+                       if (!uiState.thumbnailInputDisabled) {
+                           uiState =
+                               uiState.copy(thumbnail = (document.getElementById(Id.thumbnailInput) as HTMLInputElement).value)
+                       }
+                       if (
+                           uiState.title.isNotEmpty() &&
+                           uiState.subtitle.isNotEmpty() &&
+                           uiState.thumbnail.isNotEmpty() &&
+                           uiState.content.isNotEmpty()
+                       ) {
+                           scope.launch {
                                val result = addPost(
                                    Post(
                                        author = localStorage["username"].toString(),
@@ -330,77 +342,108 @@ fun CreateScreen(){
                                uiState = uiState.copy(messagePopup = false)
                            }
                        }
-               },
+                   },
                    text = "Create"
                )
            }
        }
-       if (uiState.messagePopup){
+       if (uiState.messagePopup) {
            MessagePopup(
                message = "Please fill out all fields",
-               onDialogDismiss = { uiState = uiState.copy(messagePopup = false)}
+               onDialogDismiss = { uiState = uiState.copy(messagePopup = false) }
            )
        }
+       if (uiState.linkPopup) {
+           LinkPopup(
+               editorControl = EditorControl.Link,
+               onDialogDismiss = { uiState = uiState.copy(linkPopup = false) },
+               onLinkAdded = { href, title ->
+                   applyStyle(
+                       ControlStyle.Link(
+                           selectedText = getSelectedText(),
+                           href = href,
+                           title = title
+                       )
+                   )
+               }
+           )
+       }
+       if (uiState.imagePopup) {
+           LinkPopup(
+               editorControl = EditorControl.Image,
+               onDialogDismiss = { uiState = uiState.copy(imagePopup = false) },
+               onLinkAdded = { imageUrl, alt ->
+                   applyStyle(
+                       ControlStyle.Image(
+                           selectedText = getSelectedText(),
+                           imageUrl = imageUrl,
+                           alt = alt
+                       )
+                   )
+               }
+           )
+       }
+
    }
 }
 
 @Composable
-fun CategoryDropdown(
+fun CategoryDropDown(
     selectedCategory: Category,
     onCategorySelect: (Category) -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .margin(topBottom = 12.px)
-            .classNames("dropdown")
-            .fillMaxWidth()
-            .height(54.px)
-            .backgroundColor(Theme.LightGray.rgb)
-            .cursor(Cursor.Pointer)
-            .attrsModifier {
-                attr("data-bs-toggle", "dropdown")
-            }
-    ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(leftRight = 20.px),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            SpanText(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fontSize(16.px)
-                    .fontFamily(FONT_FAMILY),
-                text = selectedCategory.name
-            )
-            Box(modifier = Modifier.classNames("dropdown-toggle"))
-        }
-        Ul(
-            attrs = Modifier
+                .margin(topBottom = 12.px)
+                .classNames("dropdown")
                 .fillMaxWidth()
-                .classNames("dropdown-menu")
-                .toAttrs()
+                .height(54.px)
+                .backgroundColor(Theme.LightGray.rgb)
+                .cursor(Cursor.Pointer)
+                .attrsModifier {
+                    attr("data-bs-toggle", "dropdown")
+                }
         ) {
-            Category.entries.forEach { category ->
-                Li {
-                    A(
-                        attrs = Modifier
-                            .classNames("dropdown-item")
-                            .color(Colors.Black)
-                            .fontFamily(FONT_FAMILY)
-                            .fontSize(16.px)
-                            .onClick { onCategorySelect(category) }
-                            .toAttrs()
-                    ) {
-                        Text(value = category.name)
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(leftRight = 20.px),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                SpanText(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fontSize(16.px)
+                        .fontFamily(FONT_FAMILY),
+                    text = selectedCategory.name
+                )
+                Box(modifier = Modifier.classNames("dropdown-toggle"))
+            }
+            Ul(
+                attrs = Modifier
+                    .fillMaxWidth()
+                    .classNames("dropdown-menu")
+                    .toAttrs()
+            ) {
+                Category.entries.forEach { category ->
+                    Li {
+                        A(
+                            attrs = Modifier
+                                .classNames("dropdown-item")
+                                .color(Colors.Black)
+                                .fontFamily(FONT_FAMILY)
+                                .fontSize(16.px)
+                                .onClick { onCategorySelect(category) }
+                                .toAttrs()
+                        ) {
+                            Text(value = category.name)
+                        }
                     }
                 }
             }
         }
     }
-}
 
 @Composable
 fun ThumbnailUploader(
@@ -470,8 +513,8 @@ fun ThumbnailUploader(
 fun EditorControls(
     breakpoint: Breakpoint,
     editorVisibility: Boolean,
-//    onLinkClick: () -> Unit,
-//    onImageClick: () -> Unit,
+    onLinkClick: () -> Unit,
+    onImageClick: () -> Unit,
     onEditorVisibilityChange: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxWidth()) {
@@ -489,7 +532,11 @@ fun EditorControls(
                     EditorControlView(
                         key = it,
                         onClick = {
-                            applyControlStyle(it)
+                            applyControlStyle(
+                                editorControl = it,
+                                onLinkClick = onLinkClick,
+                                onImageClick = onImageClick
+                            )
                         }
                     )
                 }
@@ -516,8 +563,8 @@ fun EditorControls(
                         .noBorder()
                         .onClick {
                            onEditorVisibilityChange()
-//                            document.getElementById(Id.editorPreview)?.innerHTML = getEditor().value
-//                            js("hljs.highlightAll()") as Unit
+                            document.getElementById(Id.editorPreview)?.innerHTML = getEditor().value
+                            js("hljs.highlightAll()") as Unit
                         }
                         .toAttrs()
                 ) {
@@ -576,15 +623,15 @@ fun Editor(editorVisibility: Boolean) {
                     if (editorVisibility) Visibility.Visible
                     else Visibility.Hidden
                 )
-//                .onKeyDown {
-//                    if (it.code == "Enter" && it.shiftKey) {
-//                        applyStyle(
-//                            controlStyle = ControlStyle.Break(
-//                                selectedText = getSelectedText()
-//                            )
-//                        )
-//                    }
-//                }
+                .onKeyDown {
+                    if (it.code == "Enter" && it.shiftKey) {
+                        applyStyle(
+                            controlStyle = ControlStyle.Break(
+                                selectedText = getSelectedText()
+                            )
+                        )
+                    }
+                }
                 .fontFamily(FONT_FAMILY)
                 .fontSize(16.px)
                 .toAttrs {

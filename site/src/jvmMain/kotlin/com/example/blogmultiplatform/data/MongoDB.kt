@@ -1,9 +1,11 @@
 package com.example.blogmultiplatform.data
 
 import com.example.blogmultiplatform.models.Post
+import com.example.blogmultiplatform.models.PostWithoutDetails
 import com.example.blogmultiplatform.models.User
 import com.example.blogmultiplatform.util.Constants.DATABASE_NAME
 import com.example.blogmultiplatform.util.Constants.MONGO_URI
+import com.example.blogmultiplatform.util.Constants.POSTS_PER_PAGE
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Filters.eq
 import com.mongodb.reactivestreams.client.MongoClient
@@ -13,6 +15,7 @@ import org.litote.kmongo.coroutine.CoroutineDatabase
 import com.varabyte.kobweb.api.init.InitApiContext
 import org.litote.kmongo.MongoOperator
 import org.litote.kmongo.coroutine.coroutine
+import org.litote.kmongo.descending
 import org.litote.kmongo.reactivestreams.KMongo
 
 
@@ -36,6 +39,16 @@ class MongoDB(private val context: InitApiContext) : MongoRepository {
 
     override suspend fun addPost(post: Post): Boolean {
         return postCollection.insertOne(post).wasAcknowledged()
+    }
+
+    override suspend fun readMyPosts(skip: Int, author: String): List<PostWithoutDetails> {
+        return postCollection
+            .withDocumentClass<PostWithoutDetails>()
+            .find(eq(PostWithoutDetails::author.name, author))
+            .sort(descending(PostWithoutDetails::date))
+            .skip(skip)
+            .limit(POSTS_PER_PAGE)
+            .toList()
     }
 
 
