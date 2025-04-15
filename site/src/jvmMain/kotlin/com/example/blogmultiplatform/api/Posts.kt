@@ -55,3 +55,34 @@ suspend fun readMyPosts(context: ApiContext) {
         )
     }
 }
+
+
+
+@Api(routeOverride = "deleteselectedposts")
+suspend fun deleteSelectedPosts(context: ApiContext) {
+    try {
+        val request = context.req.body?.decodeToString()?.let { Json.decodeFromString<List<String>>(it) }
+        context.res.setBodyText(request?.let {
+            context.data.getValue<MongoDB>().deleteSelectedPosts(ids = it).toString()
+        } ?: "false"
+        )
+    } catch (e: Exception) {
+        context.res.setBodyText(Json.encodeToString(e.message))
+    }
+}
+
+@Api(routeOverride = "searchposts")
+suspend fun searchPostsByTitle(context: ApiContext) {
+    try {
+        val query = context.req.params["query"] ?: ""
+        val skip = context.req.params["skip"]?.toInt() ?: 0
+        val posts = context.data.getValue<MongoDB>().searchPostsByTittle(
+            query = query,
+            skip = skip
+        )
+        context.res.setBodyText(Json.encodeToString(ApiListResponse.Success(data = posts)))
+    } catch (e: Exception) {
+        context.res.setBodyText(Json.encodeToString(ApiListResponse.Error(message = e.message.toString())))
+    }
+}
+

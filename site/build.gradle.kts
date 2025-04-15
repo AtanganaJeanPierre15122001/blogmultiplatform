@@ -42,9 +42,9 @@ kotlin {
     configAsKobwebApplication("blogmultiplatform", includeServer = true)
 
     sourceSets {
-//        commonMain.dependencies {
-//          // Add shared dependencies between JS and JVM here
-//        }
+        commonMain.dependencies {
+            implementation(libs.kotlinx.serialization)
+        }
         jsMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.html.core)

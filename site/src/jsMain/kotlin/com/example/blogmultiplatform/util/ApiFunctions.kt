@@ -5,6 +5,8 @@ import com.example.blogmultiplatform.models.Post
 import com.example.blogmultiplatform.models.RamdomJoke
 import com.example.blogmultiplatform.models.User
 import com.example.blogmultiplatform.models.UserWithoutPassword
+import com.example.blogmultiplatform.util.Constants.QUERY_PARAM
+import com.example.blogmultiplatform.util.Constants.SKIP_PARAM
 import com.varabyte.kobweb.browser.api
 import com.varabyte.kobweb.browser.http.http
 import kotlinx.browser.localStorage
@@ -111,6 +113,37 @@ suspend fun fetchMyPosts(
         onSuccess(Json.decodeFromString(result.toString()))
     } catch (e: Exception) {
         println(e)
+        onError(e)
+    }
+}
+
+
+suspend fun deleteSelectedPosts(ids: List<String>): Boolean {
+    return try {
+        val result = window.api.tryPost(
+            apiPath = "deleteselectedposts",
+            body = Json.encodeToString(ids).encodeToByteArray()
+        )?.decodeToString()
+        result.toBoolean()
+    } catch (e: Exception) {
+        println(e.message)
+        false
+    }
+}
+
+suspend fun searchPostsByTitle(
+    query: String,
+    skip: Int,
+    onSuccess: (ApiListResponse) -> Unit,
+    onError: (Exception) -> Unit
+) {
+    try {
+        val result = window.api.tryGet(
+            apiPath = "searchposts?${QUERY_PARAM}=$query&${SKIP_PARAM}=$skip"
+        )?.decodeToString()
+        onSuccess(Json.decodeFromString(result.toString()))
+    } catch (e: Exception) {
+        println(e.message)
         onError(e)
     }
 }

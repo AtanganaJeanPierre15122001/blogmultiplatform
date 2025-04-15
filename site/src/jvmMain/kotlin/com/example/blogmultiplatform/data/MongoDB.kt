@@ -76,4 +76,21 @@ class MongoDB(private val context: InitApiContext) : MongoRepository {
             false
         }
     }
+
+    override suspend fun deleteSelectedPosts(ids: List<String>): Boolean {
+        return postCollection
+            .deleteMany(Filters.`in`(Post::id.name, ids))
+            .wasAcknowledged()
+    }
+
+    override suspend fun searchPostsByTittle(query: String, skip: Int): List<PostWithoutDetails> {
+        val regexQuery = query.toRegex(RegexOption.IGNORE_CASE)
+        return postCollection
+            .withDocumentClass<PostWithoutDetails>()
+            .find(Filters.regex(PostWithoutDetails::title.name, regexQuery.pattern))
+            .sort(descending(PostWithoutDetails::date))
+            .skip(skip)
+            .limit(POSTS_PER_PAGE)
+            .toList()
+    }
 }

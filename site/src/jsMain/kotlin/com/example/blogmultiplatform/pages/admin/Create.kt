@@ -280,7 +280,7 @@ fun CreateScreen(){
                    onThumbnailSelect = { filename, file ->
                        (document.getElementById(Id.thumbnailInput) as HTMLInputElement).value =
                            filename
-                       uiState = uiState.copy(thumbnail = filename)
+                       uiState = uiState.copy(thumbnail = file)
                    }
                )
                EditorControls(
